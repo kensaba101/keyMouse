@@ -27,4 +27,7 @@ void updateCursorPosition();
 // Callback function to capture and process key events
 CGEventRef keyPressCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void* refcon);
 
+// Function to simulate a mouse click
+void clickMouse(CGMouseButton button); 
+
 #endif /* main_h */

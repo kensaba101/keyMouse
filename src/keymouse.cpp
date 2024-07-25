@@ -7,6 +7,8 @@
 
 std::unordered_set<CGKeyCode> pressedKeys;
 
+bool lmbDown = false;
+bool rmbDown = false;
 bool fnPressed = false;
 
 void printPressedKeys() {
@@ -40,6 +42,33 @@ void moveMouse(int deltaX, int deltaY) {
     CFRelease(move);
 }
 
+void clickMouse(CGMouseButton button, bool direction) {
+    CGPoint cursor = getCurrentCursorPosition();
+
+    // Create and post mouse down event
+    if (direction) {
+        std::cout << "Mouse down" << std::endl; //test
+        CGEventRef mouseDown = CGEventCreateMouseEvent(
+            NULL, button == kCGMouseButtonLeft ? kCGEventLeftMouseDown : kCGEventRightMouseDown,
+            cursor, button
+        );
+        CGEventPost(kCGHIDEventTap, mouseDown);
+        CFRelease(mouseDown);
+    }
+
+    // Create and post mouse up event
+    if (!direction) {
+        std::cout << "Mouse up" << std::endl; //test
+        CGEventRef mouseUp = CGEventCreateMouseEvent(
+            NULL, button == kCGMouseButtonLeft ? kCGEventLeftMouseUp : kCGEventRightMouseUp,
+            cursor, button
+        );
+        CGEventPost(kCGHIDEventTap, mouseUp);
+        CFRelease(mouseUp);
+    }
+}
+
+
 void updateCursorPosition() {
     // Check if Shift key is held down
     bool isShiftPressed = pressedKeys.count(kVK_Shift);
@@ -57,18 +86,38 @@ void updateCursorPosition() {
 
 CGEventRef keyPressCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void* refcon) {
     CGKeyCode keyCode = (CGKeyCode)CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
+    CGEventFlags flags = CGEventGetFlags(event);
 
     if (type == kCGEventKeyDown) {
         pressedKeys.insert(keyCode);
         if (keyCode == kVK_FN) { // Handle Fn key
             fnPressed = !fnPressed;
         }
+
+        // Handle LMB and RMB 
+        if (keyCode == kVK_ANSI_Q && fnPressed && !lmbDown) { // 'q' key for LMB
+            clickMouse(kCGMouseButtonLeft, true);
+            lmbDown = true;
+        } else if (keyCode == kVK_ANSI_E && fnPressed && !rmbDown) { // 'e' key for RMB
+            clickMouse(kCGMouseButtonRight, true);
+            rmbDown = true;
+        }
+
+
     } else if (type == kCGEventKeyUp) {
         pressedKeys.erase(keyCode);
+
+        // Handle LMB and RMBq
+        if (keyCode == kVK_ANSI_Q && fnPressed) { // 'q' key for LMB
+            clickMouse(kCGMouseButtonLeft, false);
+            lmbDown = false;
+        } else if (keyCode == kVK_ANSI_E && fnPressed) { // 'e' key for RMB
+            clickMouse(kCGMouseButtonRight, false);
+            rmbDown = false;
+        }
     }
     
     // Handle Shift key based on event flags
-    CGEventFlags flags = CGEventGetFlags(event);
     if (flags & kCGEventFlagMaskShift) {
         pressedKeys.insert(kVK_Shift);
     } else {
